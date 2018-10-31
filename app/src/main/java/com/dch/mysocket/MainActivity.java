@@ -18,11 +18,9 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -74,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
             }
             myAdapter.notifyDataSetChanged();
+            recyclerView.scrollToPosition(msgLists.size() - 1);
         }
     };
     private MyAdapter myAdapter;
@@ -85,7 +84,6 @@ public class MainActivity extends AppCompatActivity {
     //服务端接收
     private ServerSocket serverSocket;
     private InputStream inputStream;
-    private InputStream stream;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,13 +92,16 @@ public class MainActivity extends AppCompatActivity {
         ButterKnife.bind(this);
 
         initTitle();
+        initRv();
+        receiveData();
+    }
+
+    private void initRv() {
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
         layoutManager.setOrientation(OrientationHelper.VERTICAL);
         myAdapter = new MyAdapter(this, msgLists);
         recyclerView.setAdapter(myAdapter);
-
-        receiveData();
     }
 
 
@@ -155,6 +156,13 @@ public class MainActivity extends AppCompatActivity {
                             message.what = CLIENT_MSG;
                             message.obj = send_msg;
                             handler.sendMessage(message);
+
+                            try {
+                                outputStream.close();
+                                sendSocket.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
                         }
                     }
                 }).start();
@@ -208,7 +216,7 @@ public class MainActivity extends AppCompatActivity {
 
         //线程执行的操作，响应客户端的请求
         public void run() {
-            stream = null;
+            InputStream stream = null;
             try {
                 //3、获取输入流，并读取客户端信息
                 stream = socket.getInputStream();
@@ -233,15 +241,15 @@ public class MainActivity extends AppCompatActivity {
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
-//                //关闭资源
-//                try {
-//                    if (stream != null)
-//                        stream.close();
-//                    if (socket != null)
-//                        socket.close();
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
+                //关闭资源
+                try {
+                    if (stream != null)
+                        stream.close();
+                    if (socket != null)
+                        socket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
